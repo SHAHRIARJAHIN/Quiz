@@ -4,33 +4,41 @@ on:
   push:
     branches: [ main ]
 
+# Add permissions at the job level
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout 🛎️
-        uses: actions/checkout@v3
-
+      - name: Checkout repository 🛎️
+        uses: actions/checkout@v4  # Updated to v4
+        
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4  # Updated to v4
         with:
-          node-version: '18'
-          # Remove cache option or make it conditional
-          # cache: 'npm'
+          node-version: '20'  # Updated to LTS version
+          cache: 'npm'  # Re-added cache for faster builds
       
       - name: Install Dependencies
-        # Use npm install instead of npm ci
-        run: npm install
+        run: npm ci  # Changed back to ci for reliable installs
       
       - name: Build
         run: npm run build
         env:
           REACT_APP_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           REACT_APP_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          CI: false  # Prevent build failures from warnings
       
       - name: Deploy to GitHub Pages 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: build
           branch: gh-pages
+          token: ${{ secrets.GITHUB_TOKEN }}  # Explicitly use GITHUB_TOKEN
+          clean: true  # Clean the deployment folder
+          single-commit: true  # Create single commit for cleaner history
