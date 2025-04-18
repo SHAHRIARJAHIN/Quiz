@@ -1,4 +1,3 @@
-# .github/workflows/deploy.yml
 name: Deploy Quiz App
 
 on:
@@ -17,10 +16,12 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          cache: 'npm'
+          # Remove cache option or make it conditional
+          # cache: 'npm'
       
       - name: Install Dependencies
-        run: npm ci
+        # Use npm install instead of npm ci
+        run: npm install
       
       - name: Build
         run: npm run build
