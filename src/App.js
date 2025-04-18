@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import Registration from './components/Registration';
 import QuizInterface from './components/QuizInterface';
@@ -69,11 +67,11 @@ function App() {
     setTimerRunning(false);
     
     try {
-      // Calculate results (optional)
+      // Calculate results
       const correctAnswers = quizData.filter(q => q.correct_answer === answers[q.id]).length;
       
       // Store submission in Supabase
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('quiz_submissions')
         .insert([
           {
