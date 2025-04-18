@@ -1,4 +1,6 @@
+// src/App.js
 import React, { useState, useEffect } from 'react';
+import Layout from './components/Layout';
 import Registration from './components/Registration';
 import QuizInterface from './components/QuizInterface';
 import ThankYou from './components/ThankYou';
@@ -67,11 +69,11 @@ function App() {
     setTimerRunning(false);
     
     try {
-      // Calculate results
+      // Calculate results (optional)
       const correctAnswers = quizData.filter(q => q.correct_answer === answers[q.id]).length;
       
       // Store submission in Supabase
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('quiz_submissions')
         .insert([
           {
@@ -122,9 +124,11 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      {renderScreen()}
-    </div>
+    <Layout>
+      <div className="app-container">
+        {renderScreen()}
+      </div>
+    </Layout>
   );
 }
 
