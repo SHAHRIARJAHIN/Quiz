@@ -10,11 +10,19 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background: rgba(227, 225, 225, 0.545);
+    background: rgba(255, 255, 255, 0.285);
     backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--glass-border);
   }
-  
+  .header-logo {
+    height: 100px;
+    max-width: 100%;
+    object-fit: contain;
+    outline: white;
+    position: left;
+    margin: 0 auto;
+    padding: 0 0px;
+  }
   .event-logo {
     height: 100px;
     max-width: 100%;
@@ -33,7 +41,7 @@
   }
   
   .app-footer {
-    padding: 16px 0;
+    padding: 6px 0;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -51,7 +59,7 @@
   }
   
   .sponsor-logo {
-    height: 24px;
+    height: 40px;
     object-fit: contain;
   }
   
