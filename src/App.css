@@ -24,19 +24,16 @@ body {
   background: linear-gradient(135deg, #1e3c72, #2a5298);
   background-attachment: fixed;
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   color: var(--text-light);
 }
 
 .app-container {
   width: 100%;
-  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 20px;
+  flex: 1;
 }
 
 /* Glass Effect Common Styles */
