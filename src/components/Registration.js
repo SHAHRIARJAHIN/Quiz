@@ -1,11 +1,12 @@
 // components/Registration.js
 import React, { useState } from 'react';
 import './Registration.css';
+import { supabase } from '../utils/supabase'; // Corrected import path
 
 function Registration({ onSubmit }) {
   const [formData, setFormData] = useState({
     name: '',
-    phone: '',
+    phone: '', // Changed from phone_number to phone
     university: ''
   });
   const [errors, setErrors] = useState({});
@@ -39,11 +40,44 @@ function Registration({ onSubmit }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const validateUser = async (phone) => {
+    try {
+      console.log('Validating phone:', phone); // Debugging
+
+      const { data: existingUser, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('phone', phone) // Use phone column
+        .single();
+
+      console.log('Query result:', existingUser); // Debugging
+
+      if (error && error.code === 'PGRST116') {
+        alert('Registration not found. Please check your phone number.');
+        return false;
+      }
+
+      if (error) {
+        console.error('Error validating user:', error);
+        throw error;
+      }
+
+      return true; // User exists
+    } catch (error) {
+      console.error('Unexpected error during user validation:', error);
+      alert('An unexpected error occurred. Please try again.');
+      return false;
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
-      onSubmit(formData);
+      const isValidUser = await validateUser(formData.phone);
+      if (isValidUser) {
+        onSubmit(formData);
+      }
     }
   };
 
@@ -71,7 +105,7 @@ function Registration({ onSubmit }) {
             <input
               type="tel"
               id="phone"
-              name="phone"
+              name="phone" // Changed from phone_number to phone
               value={formData.phone}
               onChange={handleChange}
               placeholder="Enter your phone number"
