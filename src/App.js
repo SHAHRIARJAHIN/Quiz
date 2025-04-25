@@ -1,31 +1,48 @@
 // src/App.js
 import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
-import Registration from './components/Registration';
+import Details from './components/Details';
 import QuizInterface from './components/QuizInterface';
 import ThankYou from './components/ThankYou';
-import { supabase } from './utils/supabase';
+import Login from './components/login';
+import { supabase, fetchQuestionsFromGoogleSheet, GOOGLE_SHEETS_Submitted_CSV_URL, GOOGLE_SHEETS_WEB_APP_URL } from './utils/supabase';
 import './App.css';
-
+const totaltime = 15; // Total time in minutes
 function App() {
-  const [currentScreen, setCurrentScreen] = useState('registration');
+  const [currentScreen, setCurrentScreen] = useState('login');
   const [userData, setUserData] = useState(null);
   const [quizData, setQuizData] = useState([]);
   const [answers, setAnswers] = useState({});
-  const [timeElapsed, setTimeElapsed] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
+  const [remainingTime, setRemainingTime] = useState(totaltime * 60); // 3 minutes in seconds
   const [quizResult, setQuizResult] = useState(null);
+  const [email, setEmail] = useState('');
+
+  // Timer logic
+  useEffect(() => {
+    if (timerRunning) {
+      const startTime = Date.now();
+      const intervalId = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const timeLeft = totaltime * 60 - elapsed; // Calculate remaining time
+        setRemainingTime(timeLeft);
+
+        if (timeLeft <= 0) {
+          clearInterval(intervalId); // Stop the timer
+          handleSubmit(); // Automatically submit the quiz
+        }
+      }, 1000);
+
+      return () => clearInterval(intervalId);
+    }
+  }, [timerRunning]);
 
   // Fetch quiz questions when user data is provided
   useEffect(() => {
     const fetchQuizData = async () => {
       if (userData) {
         try {
-          const { data, error } = await supabase
-            .from('quiz_questions')
-            .select('*');
-          
-          if (error) throw error;
+          const data = await fetchQuestionsFromGoogleSheet();
           setQuizData(data);
         } catch (error) {
           console.error('Error fetching quiz questions:', error);
@@ -36,24 +53,43 @@ function App() {
     fetchQuizData();
   }, [userData]);
 
-  // Start timer when quiz begins
-  useEffect(() => {
-    let intervalId;
-    
-    if (timerRunning) {
-      intervalId = setInterval(() => {
-        setTimeElapsed((prev) => prev + 1);
-      }, 1000);
-    }
-
-    return () => clearInterval(intervalId);
-  }, [timerRunning]);
-
   // Handle user registration
-  const handleRegistration = (data) => {
-    setUserData(data);
-    setCurrentScreen('quiz');
-    setTimerRunning(true);
+  const handleRegistration = async (data) => {
+    try {
+      const response = await fetch(GOOGLE_SHEETS_Submitted_CSV_URL);
+      const csvText = await response.text();
+
+      // Parse the CSV data
+      const rows = csvText.split('\n').map(row => row.split(','));
+      const headers = rows[0].map(header => header.trim().toLowerCase()); // Normalize headers
+      const phoneIndex = headers.indexOf('phone'); // Match 'phone' column case-insensitively
+
+      if (phoneIndex === -1) {
+        alert('Phone column not found in the CSV file.');
+        return;
+      }
+
+      // Check for duplicate phone number
+      const isDuplicate = rows.some((row, index) => index !== 0 && row[phoneIndex] === data.phone);
+
+      if (isDuplicate) {
+        alert('You have already submitted.');
+        return;
+      }
+
+      setUserData(data);
+      setCurrentScreen('quiz');
+      setTimerRunning(true);
+    } catch (error) {
+      console.error('Error during registration:', error);
+      alert('An unexpected error occurred. Please try again.');
+    }
+  };
+
+  // Handle user login
+  const handleLogin = (emailInput) => {
+    setEmail(emailInput);
+    setCurrentScreen('registration');
   };
 
   // Handle answer selection
@@ -67,59 +103,63 @@ function App() {
   // Handle quiz submission
   const handleSubmit = async () => {
     setTimerRunning(false);
-    
+  
     try {
-      // Calculate results (optional)
       const correctAnswers = quizData.filter(q => q.correct_answer === answers[q.id]).length;
-      
-      // Store submission in Supabase
-      const { data, error } = await supabase
-        .from('quiz_submissions')
-        .insert([
-          {
-            phone: userData.phone,
-            name: userData.name,
-            university: userData.university,
-            answers: answers,
-            time_taken: timeElapsed,
-            score: correctAnswers,
-            total_questions: quizData.length
-          }
-        ]);
-      
-      if (error) throw error;
+      const timeTaken = totaltime * 60 - remainingTime;
+  
+      const formData = new URLSearchParams();
+      formData.append("name", userData.name);
+      formData.append("phone", userData.phone);
+formData.append("university", userData.university);
+formData.append("answers", JSON.stringify(answers));
+formData.append("timeTaken", timeTaken);
+formData.append("score", correctAnswers);
+formData.append("totalQuestions", quizData.length);
 
-      setQuizResult({
-        score: correctAnswers,
-        total: quizData.length,
-        timeTaken: timeElapsed
-      });
+await fetch(GOOGLE_SHEETS_WEB_APP_URL, {
+  method: "POST",
+  body: formData
+});
+  
       
+  
+      
+  
+      setQuizResult({
+        answers: answers,
+        total: quizData.length,
+        timeTaken: timeTaken
+      });
+  
       setCurrentScreen('thankYou');
     } catch (error) {
       console.error('Error submitting quiz:', error);
     }
   };
+  
 
   // Render current screen
   const renderScreen = () => {
     switch (currentScreen) {
+      case 'login':
+        return <Login onLogin={handleLogin} />;
       case 'registration':
-        return <Registration onSubmit={handleRegistration} />;
+        return <Details onSubmit={handleRegistration} email={email} />;
       case 'quiz':
         return (
-          <QuizInterface 
-            questions={quizData} 
-            onAnswerSelect={handleAnswerSelect} 
+          <QuizInterface
+            questions={quizData}
+            onAnswerSelect={handleAnswerSelect}
             answers={answers}
-            timeElapsed={timeElapsed}
+            remainingTime={remainingTime} // Pass remaining time as a prop
             onSubmit={handleSubmit}
           />
         );
       case 'thankYou':
         return <ThankYou result={quizResult} userData={userData} />;
       default:
-        return <Registration onSubmit={handleRegistration} />;
+        return <Login />;
     }
   };
 

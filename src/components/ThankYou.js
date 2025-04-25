@@ -26,15 +26,13 @@ function ThankYou({ result, userData }) {
         
         {result && (
           <div className="result-summary">
-            <div className="result-item">
-              <span className="result-label">Time taken:</span>
-              <span className="result-value">{formatTime(result.timeTaken)}</span>
-            </div>
+            
             
             <div className="result-item">
-              <span className="result-label">Questions:</span>
-              <span className="result-value">{result.total}</span>
+              <span className="result-label">Total Answered:</span>
+              <span className="result-value">{Object.keys(result.answers).length}</span>
             </div>
+            
           </div>
         )}
         
